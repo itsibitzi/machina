@@ -22,7 +22,6 @@ run: $(iso)
 iso: $(iso)
 
 $(iso): $(kernel)
-	echo $@
 	mkdir -p build/isofiles/boot/grub
 	cp $(kernel) build/isofiles/boot/kernel.bin
 	cp $(grub_cfg) build/isofiles/boot/grub
