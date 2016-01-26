@@ -1,30 +1,58 @@
 global start
+global p4_table
+global p3_table
+global p2_table
+
 section .text
 bits 32
+
+extern check_cpu_features
+extern set_up_page_tables
+extern enable_sse
+extern long_mode_start
+
 start:
-    mov word [0xb8000], 0x0147
-    mov word [0xb8002], 0x026f
-    mov word [0xb8004], 0x0372
-    mov word [0xb8006], 0x0464
-    mov word [0xb8008], 0x056f
-    mov word [0xb800a], 0x066e
+    mov esp, stack_top
 
-    mov word [0xb800c], 0x0120
+    call check_cpu_features
+    call set_up_page_tables
+    call enable_sse
 
-    mov word [0xb800e], 0x0269
-    mov word [0xb8010], 0x0373
+    lgdt [gdt64.pointer]
 
-    mov word [0xb8012], 0x0420
+    mov ax, gdt64.data
+    mov ss, ax  ; stack selector
+    mov ds, ax  ; data selector
+    mov es, ax  ; extra selector
 
-    mov word [0xb8014], 0x0561
-
-    mov word [0xb8016], 0x0620
-
-    mov word [0xb8018], 0x0162
-    mov word [0xb801a], 0x0261
-    mov word [0xb801c], 0x0377
-    mov word [0xb801e], 0x0462
-    mov word [0xb8020], 0x0561
-    mov word [0xb8022], 0x0667
+    jmp gdt64.code:long_mode_start
 
     hlt
+
+section .bss
+
+align 4096
+
+; Page tables
+p4_table:
+    resb 4096
+p3_table:
+    resb 4096
+p2_table:
+    resb 4096
+
+; Stack
+stack_bottom:
+    resb 4096
+stack_top:
+
+section .rodata
+gdt64:
+    dq 0 ; zero entry
+.code: equ $ - gdt64
+    dq (1<<44) | (1<<47) | (1<<41) | (1<<43) | (1<<53) ; code segment
+.data: equ $ - gdt64
+    dq (1<<44) | (1<<47) | (1<<41) ; data segment
+.pointer:
+    dw $ - gdt64 - 1
+    dq gdt64
